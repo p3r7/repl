@@ -27,8 +27,8 @@ luac.out
 
 # Shared objects (inc. Windows DLLs)
 *.dll
-*.so
-*.so.*
+#*.so
+#*.so.*
 *.dylib
 
 # Executables
@@ -38,4 +38,3 @@ luac.out
 *.i*86
 *.x86_64
 *.hex
-
