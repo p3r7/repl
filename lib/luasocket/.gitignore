@@ -1,6 +1,6 @@
 *.o
-*.so
-*.so.*
+#*.so
+#*.so.*
 *.obj
 *.lib
 *.dll*
@@ -12,4 +12,3 @@ Release
 *.swp
 *.suo
 x64
-
