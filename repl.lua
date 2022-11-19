@@ -79,10 +79,39 @@ local function clear_repl_output(output_buff)
   end
 end
 
+local function normalized_repl_output_line(line, output_buff)
+  -- tabs
+  line = string.gsub(line, "\t", " ")
+
+  -- special case of maiden "<ok>" outputs -> dedup those
+  if line == "<ok>" then
+    local prev_line_id = output_buff:length()
+    if prev_line_id > 0 then
+      local prev_line = output_buff:peek(prev_line_id)
+      if util.string_starts(prev_line, "<ok>") then
+        local count = 1
+        local prev_count = string.match(prev_line, '^<ok> * %((%d*)%)$')
+        if prev_count ~= nil  then
+          count = prev_count + 1
+        end
+        line = "<ok> " .. "(" .. math.floor(count) .. ")"
+        output_buff.data[prev_line_id] = line
+        line = nil
+      end
+    end
+  end
+
+  return line
+end
+
 local function register_new_repl_output(output_buff, msg)
   for line in msg:gmatch("[^\n]+") do
-    line = string.gsub(line, "\t", " ")
-    output_buff:push(line)
+
+    line = normalized_repl_output_line(line, output_buff)
+
+    if line ~= nil then
+      output_buff:push(line)
+    end
   end
   while output_buff:length() > log_buffer_length do
     output_buff:pop()
