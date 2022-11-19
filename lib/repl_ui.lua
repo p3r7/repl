@@ -4,8 +4,6 @@ local repl_ui = {}
 -- ------------------------------------------------------------------------
 -- DEPS
 
-local UI = require "ui"
-
 local repl_osc = require 'repl/lib/repl_osc'
 local fifo = require 'repl/lib/fifo'
 
