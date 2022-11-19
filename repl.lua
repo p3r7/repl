@@ -161,14 +161,9 @@ end
 -- LIFECYCLE
 
 function init()
-
-  print('-----> starting WS to OSC gw')
   repl_osc.start()
-
-  print('-----> registering cb functions')
   repl_osc.register_receive(maiden_output_cb, sc_output_cb)
 
-  print('redraw')
   redraw_clock = clock.run(
     function()
       local step_s = 1 / 10
@@ -178,7 +173,6 @@ function init()
       end
   end)
 end
-
 
 function cleanup()
   repl_osc.stop()
