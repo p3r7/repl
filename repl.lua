@@ -38,24 +38,44 @@ local prompts = {
   },
 }
 
+local function current_prompt_before_cursor()
+  return string.sub(prompts[current_repl].text, 1, prompts[current_repl].cursor)
+end
+
+local function current_prompt_after_cursor()
+  return string.sub(prompts[current_repl].text, prompts[current_repl].cursor+1)
+end
+
 local function current_prompt_insert(str)
-  prompts[current_repl].text = string.sub(prompts[current_repl].text, 1, prompts[current_repl].cursor) .. str .. string.sub(prompts[current_repl].text, prompts[current_repl].cursor+1, string.len(prompts[current_repl].text))
+  prompts[current_repl].text = current_prompt_before_cursor() .. str .. current_prompt_after_cursor()
   prompts[current_repl].cursor = prompts[current_repl].cursor + string.len(str)
 end
+
 
 -- ------------------------------------------------------------------------
 -- REPL OUTPUTS
 
 local log_buffer_length = 50
 
-  local maiden_output = fifo():setempty(function() return nil end)
-  local sc_output = fifo():setempty(function() return nil end)
+  local out_buffs = {
+    MAIDEN = {
+      buff = fifo():setempty(function() return nil end),
+      offset = 0,
+    },
+    SC = {
+      buff = fifo():setempty(function() return nil end),
+      offset = 0,
+    },
+  }
 
   local function current_repl_out_buff()
-  if current_repl == 'MAIDEN' then
-    return maiden_output
-  elseif current_repl == 'SC' then
-    return sc_output
+  return out_buffs[current_repl].buff
+end
+
+local function clear_repl_output(output_buff)
+  local length = output_buff:length()
+  for i=1,length do
+    output_buff:pop()
   end
 end
 
@@ -69,19 +89,12 @@ local function register_new_repl_output(output_buff, msg)
   end
 end
 
-local function clear_repl_output(output_buff)
-  local length = output_buff:length()
-  for i=1,length do
-    output_buff:pop()
-  end
-end
-
 local function maiden_output_cb(msg)
-  register_new_repl_output(maiden_output, msg)
+  register_new_repl_output(out_buffs['MAIDEN'].buff, msg)
 end
 
 local function sc_output_cb(msg)
-  register_new_repl_output(sc_output, msg)
+  register_new_repl_output(out_buffs['SC'].buff, msg)
 end
 
 
@@ -108,11 +121,11 @@ function keyboard.char(char)
     elseif char == "e" then
       prompts[current_repl].cursor = string.len(prompts[current_repl].text)
     elseif char == "k" then
-      prompts[current_repl].kill = string.sub(prompts[current_repl].text, prompts[current_repl].cursor+1, string.len(prompts[current_repl].text))
-      prompts[current_repl].text = string.sub(prompts[current_repl].text, 1, prompts[current_repl].cursor)
+      prompts[current_repl].kill = current_prompt_after_cursor()
+      prompts[current_repl].text = current_prompt_before_cursor()
     elseif char == "w" then
-      prompts[current_repl].kill = string.sub(prompts[current_repl].text, 1, prompts[current_repl].cursor)
-      prompts[current_repl].text = string.sub(prompts[current_repl].text, prompts[current_repl].cursor+1, string.len(prompts[current_repl].text))
+      prompts[current_repl].kill = current_prompt_before_cursor()
+      prompts[current_repl].text = current_prompt_after_cursor()
       prompts[current_repl].cursor = 0
     elseif char == "y" then
       current_prompt_insert(prompts[current_repl].kill)
@@ -125,8 +138,14 @@ end
 
 function keyboard.code(code, value)
   if code == 'BACKSPACE' and value > 0 then
-    prompts[current_repl].text = string.sub(prompts[current_repl].text, 1, -2)
+    local before_cursor = current_prompt_before_cursor()
+    local after_cursor = current_prompt_after_cursor()
+    prompts[current_repl].text = string.sub(before_cursor, 1, -2) .. after_cursor
     prompts[current_repl].cursor = math.max(0, prompts[current_repl].cursor - 1)
+  elseif code == 'DELETE' and value > 0 then
+    local before_cursor = current_prompt_before_cursor()
+    local after_cursor = current_prompt_after_cursor()
+    prompts[current_repl].text = before_cursor .. string.sub(after_cursor, 2)
   elseif code == 'ENTER' and value > 0 then
     prompts[current_repl].submit_fn(prompts[current_repl].text)
     prompts[current_repl].text = ""
@@ -181,7 +200,7 @@ local function draw_repl_prompt(text, cursor)
 
   local c_x = t_x + real_text_extends(string.sub(text, 1, cursor))
   local c_h = 8
-  local text_upperline_h = 6 -- this depend on font...
+  local text_upperline_h = 6 -- this depends on font...
   if cursor < string.len(text) then
     local char = string.sub(text, cursor+1, cursor+1)
     local c_w = real_text_extends(char) + 2
