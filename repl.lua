@@ -57,18 +57,18 @@ end
 
 local log_buffer_length = 50
 
-  local out_buffs = {
-    MAIDEN = {
-      buff = fifo():setempty(function() return nil end),
-      offset = 0,
-    },
-    SC = {
-      buff = fifo():setempty(function() return nil end),
-      offset = 0,
-    },
-  }
+local out_buffs = {
+  MAIDEN = {
+    buff = fifo():setempty(function() return nil end),
+    offset = 0,
+  },
+  SC = {
+    buff = fifo():setempty(function() return nil end),
+    offset = 0,
+  },
+}
 
-  local function current_repl_out_buff()
+local function current_repl_out_buff()
   return out_buffs[current_repl].buff
 end
 
@@ -116,6 +116,7 @@ function keyboard.char(char)
   if keyboard.ctrl() then
     if char == "l" then
       clear_repl_output(current_repl_out_buff())
+      out_buffs[current_repl].offset = 0
     elseif char == "a" then
       prompts[current_repl].cursor = 0
     elseif char == "e" then
@@ -154,6 +155,10 @@ function keyboard.code(code, value)
     prompts[current_repl].cursor = math.max(0, prompts[current_repl].cursor - 1)
   elseif code == 'RIGHT' and value > 0 then
     prompts[current_repl].cursor = math.min(string.len(prompts[current_repl].text), prompts[current_repl].cursor + 1)
+  elseif code == 'UP' and value > 0 then
+    out_buffs[current_repl].offset = math.min(out_buffs[current_repl].buff:length(), out_buffs[current_repl].offset + 1)
+  elseif code == 'DOWN' and value > 0 then
+    out_buffs[current_repl].offset = math.max(0, out_buffs[current_repl].offset - 1)
   end
 end
 
@@ -164,13 +169,13 @@ end
 -- NB: can't show more than this w/ the default font
 local max_nb_lines_to_show=5
 
-local function draw_repl_logs(repl_output)
+local function draw_repl_logs(repl_buff, offset)
   screen.level(10)
-  local buff_len = repl_output:length()
+  local buff_len = repl_buff:length()
   local nb_lines = math.min(buff_len, max_nb_lines_to_show)
 
-  for i=1,(nb_lines+1) do
-    local line = repl_output:peek(buff_len-nb_lines+i)
+  for i=1,(nb_lines) do
+    local line = repl_buff:peek(buff_len-nb_lines-offset+i)
     if line ~= nil then
       screen.move(0, 10*i)
       screen.text(line)
@@ -193,7 +198,6 @@ local function draw_repl_prompt(text, cursor)
   screen.text(ps)
 
   local t_x = real_text_extends(ps)
-  -- local t_x = 15
   screen.level(15)
   screen.move(t_x, y)
   screen.text(text)
@@ -225,7 +229,7 @@ function redraw()
   pages:redraw()
 
   -- logs
-  draw_repl_logs(current_repl_out_buff())
+  draw_repl_logs(out_buffs[current_repl].buff, out_buffs[current_repl].offset)
 
   -- prompt
   draw_repl_prompt(prompts[current_repl].text, prompts[current_repl].cursor)
