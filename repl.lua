@@ -23,59 +23,19 @@ local current_repl = 'MAIDEN'
 -- ------------------------------------------------------------------------
 -- STATE - PROMPTS
 
--- TODO: store then in a table to prevent all those if/else shenanigans
+local prompts = {
+  MAIDEN={
+    text = "",
+    cursor = 0,
+    submit_fn = repl_osc.send_maiden,
+  },
+  SC ={
+    text = "",
+    cursor = 0,
+    submit_fn = repl_osc.send_sc,
+  },
+}
 
--- local prompts = {
---   MAIDEN={
---     text = "",
---     cursor = 0,
---   },
---   SC ={
---     text = "",
---     cursor = 0,
---   },
--- }
-
-local maiden_repl_prompt_cursor = 0
-local maiden_repl_prompt = ""
-local sc_repl_prompt_cursor = 0
-local sc_repl_prompt = ""
-
-local function current_prompt()
-  if current_repl == 'MAIDEN' then
-    return maiden_repl_prompt
-  elseif current_repl == 'SC' then
-    return sc_repl_prompt
-  end
-end
-
-local function current_prompt_cursor()
-  if current_repl == 'MAIDEN' then
-    return maiden_repl_prompt_cursor
-  elseif current_repl == 'SC' then
-    return sc_repl_prompt_cursor
-  end
-end
-
-local function add_char_to_current_prompt(char)
-  if current_repl == 'MAIDEN' then
-    maiden_repl_prompt = maiden_repl_prompt .. char
-    maiden_repl_prompt_cursor = maiden_repl_prompt_cursor + 1
-  elseif current_repl == 'SC' then
-    sc_repl_prompt = sc_repl_prompt .. char
-    sc_repl_prompt_cursor = sc_repl_prompt_cursor + 1
-  end
-end
-
-local function remove_char_left_current_prompt()
-  if current_repl == 'MAIDEN' then
-    maiden_repl_prompt = string.sub(maiden_repl_prompt, 1, -2)
-    maiden_repl_prompt_cursor = math.max(0, maiden_repl_prompt_cursor - 1)
-  elseif current_repl == 'SC' then
-    sc_repl_prompt = string.sub(sc_repl_prompt, 1, -2)
-    sc_repl_prompt_cursor = math.max(0, sc_repl_prompt_cursor - 1)
-  end
-end
 
 -- ------------------------------------------------------------------------
 -- REPL OUTPUTS
@@ -139,20 +99,18 @@ function keyboard.char(char)
     return
   end
 
-  add_char_to_current_prompt(char)
+  prompts[current_repl].text = prompts[current_repl].text .. char
+  prompts[current_repl].cursor = prompts[current_repl].cursor + 1
 end
 
 function keyboard.code(code, value)
   if code == 'BACKSPACE' and value > 0 then
-    remove_char_left_current_prompt()
+    prompts[current_repl].text = string.sub(prompts[current_repl].text, 1, -2)
+    prompts[current_repl].cursor = math.max(0, prompts[current_repl].cursor - 1)
   elseif code == 'ENTER' and value > 0 then
-    if current_repl == 'MAIDEN' then
-      repl_osc.send_maiden(maiden_repl_prompt)
-      maiden_repl_prompt = ""
-    elseif current_repl == 'SC' then
-      repl_osc.send_sc(sc_repl_prompt)
-      sc_repl_prompt = ""
-    end
+    prompts[current_repl].submit_fn(prompts[current_repl].text)
+    prompts[current_repl].text = ""
+    prompts[current_repl].cursor = 0
   end
 end
 
@@ -195,7 +153,7 @@ function redraw()
   draw_repl_logs(current_repl_out_buff())
 
   -- prompt
-  draw_repl_prompt(current_prompt(), current_prompt_cursor())
+  draw_repl_prompt(prompts[current_repl].text, prompts[current_repl].cursor)
 
   screen.update()
 end
