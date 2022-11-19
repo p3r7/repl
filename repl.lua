@@ -26,16 +26,22 @@ local current_repl = 'MAIDEN'
 local prompts = {
   MAIDEN={
     text = "",
+    kill = "",
     cursor = 0,
     submit_fn = repl_osc.send_maiden,
   },
   SC ={
     text = "",
+    kill = "",
     cursor = 0,
     submit_fn = repl_osc.send_sc,
   },
 }
 
+local function current_prompt_insert(str)
+  prompts[current_repl].text = string.sub(prompts[current_repl].text, 1, prompts[current_repl].cursor) .. str .. string.sub(prompts[current_repl].text, prompts[current_repl].cursor+1, string.len(prompts[current_repl].text))
+  prompts[current_repl].cursor = prompts[current_repl].cursor + string.len(str)
+end
 
 -- ------------------------------------------------------------------------
 -- REPL OUTPUTS
@@ -94,13 +100,27 @@ end
 -- IO - KBD - REPL PROMPTS
 
 function keyboard.char(char)
-  if char == "l" and keyboard.ctrl() then
-    clear_repl_output(current_repl_out_buff())
+  if keyboard.ctrl() then
+    if char == "l" then
+      clear_repl_output(current_repl_out_buff())
+    elseif char == "a" then
+      prompts[current_repl].cursor = 0
+    elseif char == "e" then
+      prompts[current_repl].cursor = string.len(prompts[current_repl].text)
+    elseif char == "k" then
+      prompts[current_repl].kill = string.sub(prompts[current_repl].text, prompts[current_repl].cursor+1, string.len(prompts[current_repl].text))
+      prompts[current_repl].text = string.sub(prompts[current_repl].text, 1, prompts[current_repl].cursor)
+    elseif char == "w" then
+      prompts[current_repl].kill = string.sub(prompts[current_repl].text, 1, prompts[current_repl].cursor)
+      prompts[current_repl].text = string.sub(prompts[current_repl].text, prompts[current_repl].cursor+1, string.len(prompts[current_repl].text))
+      prompts[current_repl].cursor = 0
+    elseif char == "y" then
+      current_prompt_insert(prompts[current_repl].kill)
+    end
     return
   end
 
-  prompts[current_repl].text = prompts[current_repl].text .. char
-  prompts[current_repl].cursor = prompts[current_repl].cursor + 1
+  current_prompt_insert(char)
 end
 
 function keyboard.code(code, value)
@@ -111,6 +131,10 @@ function keyboard.code(code, value)
     prompts[current_repl].submit_fn(prompts[current_repl].text)
     prompts[current_repl].text = ""
     prompts[current_repl].cursor = 0
+  elseif code == 'LEFT' and value > 0 then
+    prompts[current_repl].cursor = math.max(0, prompts[current_repl].cursor - 1)
+  elseif code == 'RIGHT' and value > 0 then
+    prompts[current_repl].cursor = math.min(string.len(prompts[current_repl].text), prompts[current_repl].cursor + 1)
   end
 end
 
@@ -135,13 +159,45 @@ local function draw_repl_logs(repl_output)
   end
 end
 
+-- NB: screen.text_extents trims !!!
+-- hackish way: replace " " by "T", which works for default font
+local function real_text_extends(text)
+  return screen.text_extents(text:gsub("% ", "T"))
+end
+
 local function draw_repl_prompt(text, cursor)
+  local ps = ">> "
+  local y = 60
+
   screen.level(8)
-  screen.move(0, 60)
-  screen.text(">> ")
+  screen.move(0, y)
+  screen.text(ps)
+
+  local t_x = real_text_extends(ps)
+  -- local t_x = 15
   screen.level(15)
-  screen.move(15, 60)
+  screen.move(t_x, y)
   screen.text(text)
+
+  local c_x = t_x + real_text_extends(string.sub(text, 1, cursor))
+  local c_h = 8
+  local text_upperline_h = 6 -- this depend on font...
+  if cursor < string.len(text) then
+    local char = string.sub(text, cursor+1, cursor+1)
+    local c_w = real_text_extends(char) + 2
+    screen.level(8)
+    screen.rect(c_x, y-text_upperline_h, c_w, c_h)
+    screen.fill()
+    screen.level(0)
+    screen.move(c_x + 1, y)
+    screen.text(char)
+  else
+    local c_w = 5
+    screen.level(8)
+    screen.rect(c_x, y-text_upperline_h, c_w, c_h)
+    screen.fill()
+  end
+
 end
 
 function redraw()
