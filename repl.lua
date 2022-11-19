@@ -36,7 +36,7 @@ local function register_new_repl_output(output_buff, msg)
     line = string.gsub(line, "\t", " ")
     output_buff:push(line)
   end
-  if output_buff:length() > log_buffer_length then
+  while output_buff:length() > log_buffer_length do
     output_buff:pop()
   end
 end
