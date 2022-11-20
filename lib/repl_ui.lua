@@ -56,11 +56,17 @@ local log_buffer_length = 50
 local out_buffs = {
   MAIDEN = {
     buff = fifo():setempty(function() return nil end),
-    offset = 0,
+    offset = {
+      x = 0,
+      y = 0,
+    },
   },
   SC = {
     buff = fifo():setempty(function() return nil end),
-    offset = 0,
+    offset = {
+      x = 0,
+      y = 0,
+    },
   },
 }
 
@@ -71,27 +77,35 @@ local function clear_repl_output(output_buff)
   end
 end
 
+
+local function maybe_dedupped_repl_output_line(line, output_buff, search_line)
+  if line == search_line then
+    local prev_line_id = output_buff:length()
+    if prev_line_id > 0 then
+      local prev_line = output_buff:peek(prev_line_id)
+      if util.string_starts(prev_line, search_line) then
+        local count = 1
+        local prev_count = string.match(prev_line, '^' .. search_line .. ' * %((%d*)%)$')
+        if prev_count ~= nil  then
+          count = prev_count + 1
+        end
+        line = search_line .. " (" .. math.floor(count) .. ")"
+        output_buff.data[prev_line_id] = line
+        return
+      end
+    end
+  end
+
+  return line
+end
+
 local function normalized_repl_output_line(line, output_buff)
   -- tabs
   line = string.gsub(line, "\t", " ")
 
-  -- special case of maiden "<ok>" outputs -> dedup those
-  if line == "<ok>" then
-    local prev_line_id = output_buff:length()
-    if prev_line_id > 0 then
-      local prev_line = output_buff:peek(prev_line_id)
-      if util.string_starts(prev_line, "<ok>") then
-        local count = 1
-        local prev_count = string.match(prev_line, '^<ok> * %((%d*)%)$')
-        if prev_count ~= nil  then
-          count = prev_count + 1
-        end
-        line = "<ok> " .. "(" .. math.floor(count) .. ")"
-        output_buff.data[prev_line_id] = line
-        line = nil
-      end
-    end
-  end
+  -- special case of common maiden outputs ("<ok>", "nil") -> dedup those
+  line = maybe_dedupped_repl_output_line(line, output_buff, "<ok>")
+  line = maybe_dedupped_repl_output_line(line, output_buff, "nil")
 
   return line
 end
@@ -122,24 +136,30 @@ end
 -- ------------------------------------------------------------------------
 -- UI
 
-local function draw_repl_logs(repl_buff, offset)
+-- NB: screen.text_extents trims !!!
+-- hackish way: replace " " by "T", which works for default font
+local function real_text_extends(text)
+  return screen.text_extents(text:gsub("% ", "T"))
+end
+
+local function draw_repl_logs(repl_buff, y_offset, x_offset)
+  if x_offset == nil then
+    x_offset = 0
+  end
+
+  local x = x_offset * real_text_extends(" ") * -1
+
   screen.level(10)
   local buff_len = repl_buff:length()
   local nb_lines = math.min(buff_len, max_nb_lines_to_show)
 
   for i=1,(nb_lines) do
-    local line = repl_buff:peek(buff_len-nb_lines-offset+i)
+    local line = repl_buff:peek(buff_len-nb_lines-y_offset+i)
     if line ~= nil then
-      screen.move(0, lines_leading*i)
+      screen.move(x, lines_leading*i)
       screen.text(line)
     end
   end
-end
-
--- NB: screen.text_extents trims !!!
--- hackish way: replace " " by "T", which works for default font
-local function real_text_extends(text)
-  return screen.text_extents(text:gsub("% ", "T"))
 end
 
 local function draw_repl_prompt(text, cursor)
@@ -191,7 +211,7 @@ end
 
 function repl_ui.redraw(repl)
   -- logs
-  draw_repl_logs(out_buffs[repl].buff, out_buffs[repl].offset)
+  draw_repl_logs(out_buffs[repl].buff, out_buffs[repl].offset.y, out_buffs[repl].offset.x)
 
   -- prompt
   draw_repl_prompt(prompts[repl].text, prompts[repl].cursor)
@@ -201,7 +221,7 @@ function repl_ui.kbd_char(repl, char)
   if keyboard.ctrl() then
     if char == "l" then
       clear_repl_output(out_buffs[repl].buff)
-      out_buffs[repl].offset = 0
+      out_buffs[repl].offset.y = 0
     elseif char == "a" then
       prompts[repl].cursor = 0
     elseif char == "e" then
@@ -237,20 +257,32 @@ function repl_ui.kbd_code(repl, code, value)
     prompts[repl].text = ""
     prompts[repl].cursor = 0
   elseif code == 'LEFT' and value > 0 then
-    prompts[repl].cursor = math.max(0, prompts[repl].cursor - 1)
+    if keyboard.alt() then
+      out_buffs[repl].offset.x = math.max(0, out_buffs[repl].offset.x - 1)
+    else
+      prompts[repl].cursor = math.max(0, prompts[repl].cursor - 1)
+    end
   elseif code == 'RIGHT' and value > 0 then
-    prompts[repl].cursor = math.min(string.len(prompts[repl].text), prompts[repl].cursor + 1)
+    if keyboard.alt() then
+      out_buffs[repl].offset.x = out_buffs[repl].offset.x + 1
+    else
+      prompts[repl].cursor = math.min(string.len(prompts[repl].text), prompts[repl].cursor + 1)
+    end
   elseif code == 'UP' and value > 0 then
-    local nb_lines = out_buffs[repl].buff:length()
-    if nb_lines <= max_nb_lines_to_show then
-      return
+    if keyboard.alt() then
+      local nb_lines = out_buffs[repl].buff:length()
+      if nb_lines <= max_nb_lines_to_show then
+        return
+      end
+      if out_buffs[repl].offset.y == (nb_lines - max_nb_lines_to_show) then
+        return
+      end
+      out_buffs[repl].offset.y = math.min(nb_lines, out_buffs[repl].offset.y + 1)
     end
-    if out_buffs[repl].offset == (nb_lines - max_nb_lines_to_show) then
-      return
-    end
-    out_buffs[repl].offset = math.min(nb_lines, out_buffs[repl].offset + 1)
   elseif code == 'DOWN' and value > 0 then
-    out_buffs[repl].offset = math.max(0, out_buffs[repl].offset - 1)
+    if keyboard.alt() then
+      out_buffs[repl].offset.y = math.max(0, out_buffs[repl].offset.y - 1)
+    end
   end
 end
 
