@@ -28,10 +28,10 @@ m.key = function(n, z)
   -- (nothing to do)
 end
 
-m.enc = function(n, z)
-  if n == 1 then
-    pages:set_index_delta(d,false)
-    m.current_repl = page_list[m.pages.index]
+m.enc = function(n, d)
+  if n == 2 then
+    m.pages:set_index_delta(d,false)
+    m.current_repl = m.page_list[m.pages.index]
   end
   mod.menu.redraw()
 end
