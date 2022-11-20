@@ -9,6 +9,14 @@ local fifo = require 'repl/lib/fifo'
 
 
 -- ------------------------------------------------------------------------
+-- CONF
+
+-- NB: can't show more than this w/ the default font
+local max_nb_lines_to_show = 9
+local lines_leading = 6
+
+
+-- ------------------------------------------------------------------------
 -- STATE - PROMPTS
 
 local prompts = {
@@ -114,9 +122,6 @@ end
 -- ------------------------------------------------------------------------
 -- UI
 
--- NB: can't show more than this w/ the default font
-local max_nb_lines_to_show=5
-
 local function draw_repl_logs(repl_buff, offset)
   screen.level(10)
   local buff_len = repl_buff:length()
@@ -125,7 +130,7 @@ local function draw_repl_logs(repl_buff, offset)
   for i=1,(nb_lines) do
     local line = repl_buff:peek(buff_len-nb_lines-offset+i)
     if line ~= nil then
-      screen.move(0, 10*i)
+      screen.move(0, lines_leading*i)
       screen.text(line)
     end
   end
@@ -175,9 +180,9 @@ end
 -- ------------------------------------------------------------------------
 -- EXPOSED SCRIPT API
 
-function repl_ui.init()
+function repl_ui.init(additional_cb)
   repl_osc.start()
-  repl_osc.register_receive(maiden_output_cb, sc_output_cb)
+  repl_osc.register_receive(maiden_output_cb, sc_output_cb, additional_cb)
 end
 
 function repl_ui.cleanup()
@@ -236,7 +241,14 @@ function repl_ui.kbd_code(repl, code, value)
   elseif code == 'RIGHT' and value > 0 then
     prompts[repl].cursor = math.min(string.len(prompts[repl].text), prompts[repl].cursor + 1)
   elseif code == 'UP' and value > 0 then
-    out_buffs[repl].offset = math.min(out_buffs[repl].buff:length(), out_buffs[repl].offset + 1)
+    local nb_lines = out_buffs[repl].buff:length()
+    if nb_lines <= max_nb_lines_to_show then
+      return
+    end
+    if out_buffs[repl].offset == (nb_lines - max_nb_lines_to_show) then
+      return
+    end
+    out_buffs[repl].offset = math.min(nb_lines, out_buffs[repl].offset + 1)
   elseif code == 'DOWN' and value > 0 then
     out_buffs[repl].offset = math.max(0, out_buffs[repl].offset - 1)
   end
