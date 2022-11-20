@@ -45,10 +45,12 @@ end
 
 m.keychar = function(char)
   repl_ui.kbd_char(m.current_repl, char)
+  mod.menu.redraw()
 end
 
 m.keycode = function(code, value)
   repl_ui.kbd_code(m.current_repl, code, value)
+  mod.menu.redraw()
 end
 
 mod.menu.register(mod.this_name, m)
@@ -64,9 +66,21 @@ mod.menu.register(mod.this_name, m)
 -- end)
 
 mod.hook.register("script_pre_init", "repl-script-pre-init", function ()
-                    repl_ui.init()
+                    if norns.state.shortname == 'repl' then
+                      print("repl mod - not loading as launching companion script")
+                      return
+                    end
+                    repl_ui.init(function(_unused)
+                        if _menu.mode and _menu.page == "repl" then
+                          mod.menu.redraw()
+                        end
+                    end)
 end)
 
 mod.hook.register("script_post_cleanup", "repl-script-post-cleanup", function ()
+                    if norns.state.shortname == 'repl' then
+                      print("repl mod - not cleaning as launched companion script")
+                      return
+                    end
                     repl_ui.cleanup()
 end)

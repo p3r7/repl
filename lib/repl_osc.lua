@@ -54,18 +54,27 @@ end
 -- ------------------------------------------------------------------------
 -- API
 
-function repl_osc.register_receive(maiden_fn, sc_fn)
-  local old_osc_in = osc.event
+function repl_osc.register_receive(maiden_fn, sc_fn, both_fn)
+  local script_osc_in = osc.event
   osc.event=function(path, args, from)
-    if old_osc_in ~= nil then
-      old_osc_in(path, args, from)
-    end
-    if path == osc_path_maiden and maiden_fn ~= nil then
+    if path == osc_path_maiden then
       local d = args[1]
-      maiden_fn(d)
-    elseif path == osc_path_sc and sc_fn ~= nil then
+      if maiden_fn ~= nil then
+        maiden_fn(d)
+      end
+      if both_fn ~= nil then
+        both_fn(d)
+      end
+    elseif path == osc_path_sc then
       local d = args[1]
-      sc_fn(d)
+      if sc_fn ~= nil then
+        sc_fn(d)
+      end
+      if both_fn ~= nil then
+        both_fn(d)
+      end
+    elseif  old_osc_in ~= nil then
+      script_osc_in(path, args, from)
     end
   end
 end
