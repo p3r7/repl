@@ -4,7 +4,10 @@ access norns' repls (both maiden and supercollider) either:
 - as a script
 - at any time when another script is launched (`repl` mod)
 
-- `E3`: switch between
+
+## instructions
+
+- `E3`: switch between the 2 REPLs
 - `E2`: scroll UP/DOWN
 - `K1` + `E2`: scroll LEFT/RIGHT
 
@@ -14,7 +17,7 @@ additionally:
 
 - `Enter`: submit prompt to current REPL
 - `Alt` + directional arrows: scroll UP/DOWN/LEFT/RIGHT
-- standard Unix/Emacs bindings (`Ctrl+A`, `Ctrl+E`, `Ctrl+W`, `Ctrl+K`, `Ctrl+L`) work
+- standard Unix/Emacs bindings (`Ctrl+A`, `Ctrl+E`, `Ctrl+W`, `Ctrl+K`, `Ctrl+Y`, `Ctrl+L`) work
 
 
 ## implementation details
