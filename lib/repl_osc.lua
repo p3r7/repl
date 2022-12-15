@@ -84,7 +84,7 @@ function repl_osc.send_maiden(msg)
 end
 
 function repl_osc.send_sc(msg)
-  osc.send({"localhost", gw_osc_port}, osc_path_sc, {msg .. "\n"})
+  osc.send({"localhost", gw_osc_port}, osc_path_sc, {msg .. ""})
 end
 
 
