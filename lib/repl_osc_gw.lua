@@ -1,4 +1,4 @@
-local repl_osc = {}
+local repl_osc_gw = {}
 
 
 -- ------------------------------------------------------------------------
@@ -39,14 +39,14 @@ end
 -- ------------------------------------------------------------------------
 -- LIFECYCLE
 
-function repl_osc.start()
+function repl_osc_gw.start()
   local pid=os.capture("pidof " .. ws_osc_wrapper_bin)
   if pid=="" then
     os.execute(ws_osc_wrapper_bin_path .. " &")
   end
 end
 
-function repl_osc.stop()
+function repl_osc_gw.stop()
   os.execute("pkill -9 -f " .. ws_osc_wrapper_bin)
 end
 
@@ -54,7 +54,7 @@ end
 -- ------------------------------------------------------------------------
 -- API
 
-function repl_osc.register_receive(maiden_fn, sc_fn, both_fn)
+function repl_osc_gw.register_receive(maiden_fn, sc_fn, both_fn)
   local script_osc_in = osc.event
   osc.event=function(path, args, from)
     if path == osc_path_maiden then
@@ -79,15 +79,15 @@ function repl_osc.register_receive(maiden_fn, sc_fn, both_fn)
   end
 end
 
-function repl_osc.send_maiden(msg)
+function repl_osc_gw.send_maiden(msg)
   osc.send({"localhost", gw_osc_port}, osc_path_maiden, {msg .. "\n"})
 end
 
-function repl_osc.send_sc(msg)
+function repl_osc_gw.send_sc(msg)
   osc.send({"localhost", gw_osc_port}, osc_path_sc, {msg .. ""})
 end
 
 
 -- ------------------------------------------------------------------------
 
-return repl_osc
+return repl_osc_gw

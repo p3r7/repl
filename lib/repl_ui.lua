@@ -4,7 +4,7 @@ local repl_ui = {}
 -- ------------------------------------------------------------------------
 -- DEPS
 
-local repl_osc = require 'repl/lib/repl_osc'
+local repl_osc_gw = require 'repl/lib/repl_osc_gw'
 local fifo = require 'repl/lib/fifo'
 
 
@@ -24,13 +24,13 @@ local prompts = {
     text = "",
     kill = "",
     cursor = 0,
-    submit_fn = repl_osc.send_maiden,
+    submit_fn = repl_osc_gw.send_maiden,
   },
   SC ={
     text = "",
     kill = "",
     cursor = 0,
-    submit_fn = repl_osc.send_sc,
+    submit_fn = repl_osc_gw.send_sc,
   },
 }
 
@@ -245,12 +245,12 @@ end
 -- EXPOSED SCRIPT API
 
 function repl_ui.init(additional_cb)
-  repl_osc.start()
-  repl_osc.register_receive(maiden_output_cb, sc_output_cb, additional_cb)
+  repl_osc_gw.start()
+  repl_osc_gw.register_receive(maiden_output_cb, sc_output_cb, additional_cb)
 end
 
 function repl_ui.cleanup()
-  repl_osc.stop()
+  repl_osc_gw.stop()
 end
 
 function repl_ui.redraw(repl)
