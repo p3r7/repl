@@ -1,5 +1,7 @@
 # repl
 
+![screenshot](https://norns.community/community/eigen/repl.png)
+
 access norns' repls (both maiden and supercollider) either:
 - as a script
 - at any time when another script is launched (`repl` mod)
