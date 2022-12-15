@@ -24,13 +24,29 @@ m.deinit = function()
   -- (nothing to do)
 end
 
+local shift = false
+
 m.key = function(n, z)
-  -- (nothing to do)
+  if n == 1  then
+    if z == 1 then
+      shift = true
+    else
+      shift = false
+    end
+  elseif n == 2 and z == 1 then
+    _menu.set_page("MODS")
+  end
 end
 
 m.enc = function(n, d)
   if n == 2 then
-    m.pages:set_index_delta(d,false)
+    if shift then
+      repl_ui.output_scroll_horiz(m.current_repl, d)
+    else
+      repl_ui.output_scroll_vert(m.current_repl, d)
+    end
+  elseif n == 3 then
+    m.pages:set_index_delta(d, false)
     m.current_repl = m.page_list[m.pages.index]
   end
   mod.menu.redraw()
@@ -77,10 +93,10 @@ mod.hook.register("script_pre_init", "repl-script-pre-init", function ()
                     end)
 end)
 
-mod.hook.register("script_post_cleanup", "repl-script-post-cleanup", function ()
-                    if norns.state.shortname == 'repl' then
-                      print("repl mod - not cleaning as launched companion script")
-                      return
-                    end
-                    repl_ui.cleanup()
-end)
+  mod.hook.register("script_post_cleanup", "repl-script-post-cleanup", function ()
+                      if norns.state.shortname == 'repl' then
+                        print("repl mod - not cleaning as launched companion script")
+                        return
+                      end
+                      repl_ui.cleanup()
+  end)

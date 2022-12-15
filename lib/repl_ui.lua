@@ -77,6 +77,50 @@ local function clear_repl_output(output_buff)
   end
 end
 
+local function offset_repl_output_up(out_buff, v)
+  local nb_lines = out_buff.buff:length()
+  if nb_lines <= max_nb_lines_to_show then
+    return
+  end
+  if out_buff.offset.y == (nb_lines - max_nb_lines_to_show) then
+    return
+  end
+  out_buff.offset.y = math.min(nb_lines, out_buff.offset.y + v)
+end
+
+local function offset_repl_output_down(out_buff, v)
+  out_buff.offset.y = math.max(0, out_buff.offset.y - v)
+end
+
+local function offset_repl_output_vert(out_buff, v)
+  if v == 0 then
+    return
+  end
+  if v < 0 then
+    offset_repl_output_down(out_buff, -v)
+  else
+    offset_repl_output_up(out_buff, v)
+  end
+end
+
+function repl_ui.output_scroll_vert(repl, v)
+  offset_repl_output_vert(out_buffs[repl], -math.floor(v))
+end
+
+local function offset_repl_output_horiz(out_buff, v)
+  if v == 0 then
+    return
+  elseif v < 0 then
+    v = -v
+    out_buff.offset.x = math.max(0, out_buff.offset.x - v)
+  else
+    out_buff.offset.x = out_buff.offset.x + v
+  end
+end
+
+function repl_ui.output_scroll_horiz(repl, v)
+  offset_repl_output_horiz(out_buffs[repl], math.floor(v))
+end
 
 local function maybe_dedupped_repl_output_line(line, output_buff, search_line)
   if line == search_line then
@@ -270,18 +314,11 @@ function repl_ui.kbd_code(repl, code, value)
     end
   elseif code == 'UP' and value > 0 then
     if keyboard.alt() then
-      local nb_lines = out_buffs[repl].buff:length()
-      if nb_lines <= max_nb_lines_to_show then
-        return
-      end
-      if out_buffs[repl].offset.y == (nb_lines - max_nb_lines_to_show) then
-        return
-      end
-      out_buffs[repl].offset.y = math.min(nb_lines, out_buffs[repl].offset.y + 1)
+      offset_repl_output_up(out_buffs[repl], 1)
     end
   elseif code == 'DOWN' and value > 0 then
     if keyboard.alt() then
-      out_buffs[repl].offset.y = math.max(0, out_buffs[repl].offset.y - 1)
+      offset_repl_output_down(out_buffs[repl], 1)
     end
   end
 end

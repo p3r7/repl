@@ -22,9 +22,27 @@ local redraw_clock = nil
 -- ------------------------------------------------------------------------
 -- IO - ENC
 
+local shift = false
+
+m.key = function(n, z)
+  if n == 1  then
+    if z == 1 then
+      shift = true
+    else
+      shift = false
+    end
+  end
+end
+
 function enc(n, d)
-  if n == 1 then
-    pages:set_index_delta(d,false)
+  if n == 2 then
+    if shift then
+      repl_ui.output_scroll_horiz(current_repl, d)
+    else
+      repl_ui.output_scroll_vert(current_repl, d)
+    end
+  elseif n == 3 then
+    pages:set_index_delta(d, false)
     current_repl = page_list[pages.index]
   end
 end
