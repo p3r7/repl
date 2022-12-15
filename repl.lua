@@ -1,4 +1,26 @@
 -- repl
+-- @eigen
+--
+--   <ok> (4)
+--   >> print("hello world!")
+--
+--
+-- ▼ instructions below ▼
+--
+-- - E3: switch between the 2 REPLs
+-- - E2: scroll UP/DOWN
+-- - K1 + E2: scroll LEFT/RIGHT
+--
+-- keyboard:
+-- - Enter: submit prompt
+-- - Alt + arrows: scroll
+-- - Ctrl+A: begining of line
+-- - Ctrl+E: end of line
+-- - Ctrl+W: kill before (cut)
+-- - Ctrl+K: kill after (cut)
+-- - Ctrl+Y: yank (paste)
+-- - Ctrl+L: clear
+
 
 local UI = require "ui"
 
