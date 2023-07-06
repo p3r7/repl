@@ -47,6 +47,26 @@ local function prompt_insert(repl, str)
   prompts[repl].cursor = prompts[repl].cursor + string.len(str)
 end
 
+-- ------------------------------------------------------------------------
+-- REPL INPUT HISTORY
+
+input_history = {MAIDEN = {hist = {}, offset = 0}, SC = {hist = {}, offset = 0}}
+
+function get_previous_input(repl)
+   local prev_input = input_history[repl].hist[#input_history[repl].hist - input_history[repl].offset]
+   if input_history[repl].offset <= #input_history[repl].hist then
+      input_history[repl].offset = input_history[repl].offset + 1
+   end
+   return prev_input
+end
+
+function get_next_input(repl)
+   local next_input = input_history[repl].hist[#input_history[repl].hist - input_history[repl].offset]
+   if input_history[repl].offset > 0 then
+      input_history[repl].offset = input_history[repl].offset - 1
+   end
+   return next_input or ""
+end
 
 -- ------------------------------------------------------------------------
 -- REPL OUTPUTS
@@ -270,6 +290,10 @@ function repl_ui.kbd_char(repl, char)
       prompts[repl].cursor = 0
     elseif char == "e" then
       prompts[repl].cursor = string.len(prompts[repl].text)
+    elseif char == "b" then
+      prompts[repl].cursor = math.max(0, prompts[repl].cursor - 1)
+    elseif char == "f" then
+      prompts[repl].cursor = math.min(string.len(prompts[repl].text), prompts[repl].cursor + 1)
     elseif char == "k" then
       prompts[repl].kill = prompt_after_cursor(repl)
       prompts[repl].text = prompt_before_cursor(repl)
@@ -279,6 +303,12 @@ function repl_ui.kbd_char(repl, char)
       prompts[repl].cursor = 0
     elseif char == "y" then
       prompt_insert(repl, prompts[repl].kill)
+    elseif char == "p" then
+      prompts[repl].text = get_previous_input(repl)
+      prompts[repl].cursor = string.len(prompts[repl].text)
+    elseif char == "n" then
+      prompts[repl].text = get_next_input(repl)
+      prompts[repl].cursor = string.len(prompts[repl].text)
     end
     return
   end
@@ -297,6 +327,11 @@ function repl_ui.kbd_code(repl, code, value)
     local after_cursor = prompt_after_cursor(repl)
     prompts[repl].text = before_cursor .. string.sub(after_cursor, 2)
   elseif code == 'ENTER' and value > 0 then
+     -- FIXME: this clause is currently doing too much
+    if prompts[repl].text ~= "" then
+       table.insert(input_history[repl].hist, prompts[repl].text)
+    end
+    input_history[repl].offset = 0
     prompts[repl].submit_fn(prompts[repl].text)
     prompts[repl].text = ""
     prompts[repl].cursor = 0
