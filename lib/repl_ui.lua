@@ -50,22 +50,41 @@ end
 -- ------------------------------------------------------------------------
 -- REPL INPUT HISTORY
 
-input_history = {MAIDEN = {hist = {}, offset = 0}, SC = {hist = {}, offset = 0}}
+local input_history = {
+   MAIDEN = {
+      hist = {},
+      offset = 0
+   },
+   SC = {
+      hist = {},
+      offset = 0
+   }
+}
 
 function get_previous_input(repl)
+   if input_history[repl].offset == #input_history[repl].hist then
+      -- Persist the first entry rather than resort to empty line.
+      return input_history[repl].hist[1] or "" -- latter covers the edge case of fresh history
+   end
+   -- FIXME: Figure out index first, only then the message; reason based on index and hist length.
    local prev_input = input_history[repl].hist[#input_history[repl].hist - input_history[repl].offset]
-   if input_history[repl].offset <= #input_history[repl].hist then
+   if input_history[repl].offset < #input_history[repl].hist then
       input_history[repl].offset = input_history[repl].offset + 1
    end
-   return prev_input
+   return prev_input or ""
 end
 
 function get_next_input(repl)
-   local next_input = input_history[repl].hist[#input_history[repl].hist - input_history[repl].offset]
+   -- End of history
+   if input_history[repl].offset == 0 and #input_history[repl].hist then
+      -- return "" -- Provide empty line. Unfortunately loses what was there
+      return prompts[repl].text
+   end
    if input_history[repl].offset > 0 then
       input_history[repl].offset = input_history[repl].offset - 1
    end
-   return next_input or ""
+   local next_input = input_history[repl].hist[#input_history[repl].hist - input_history[repl].offset]
+   return next_input
 end
 
 -- ------------------------------------------------------------------------
