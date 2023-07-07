@@ -63,7 +63,6 @@ local input_history = {
 
 function get_previous_input(repl)
    if input_history[repl].offset == #input_history[repl].hist then
-      -- Persist the first entry rather than resort to empty line.
       return input_history[repl].hist[1] or "" -- latter covers the edge case of fresh history
    end
    -- FIXME: Figure out index first, only then the message; reason based on index and hist length.
@@ -75,10 +74,8 @@ function get_previous_input(repl)
 end
 
 function get_next_input(repl)
-   -- End of history
-   if input_history[repl].offset == 0 and #input_history[repl].hist then
-      -- return "" -- Provide empty line. Unfortunately loses what was there
-      return prompts[repl].text
+   if input_history[repl].offset <= 1 then
+      return prompts[repl].text -- back to the unfinished draft
    end
    if input_history[repl].offset > 0 then
       input_history[repl].offset = input_history[repl].offset - 1
