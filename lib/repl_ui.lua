@@ -51,37 +51,37 @@ end
 -- REPL INPUT HISTORY
 
 local input_history = {
-   MAIDEN = {
-      hist = {},
-      offset = 0
-   },
-   SC = {
-      hist = {},
-      offset = 0
-   }
+  MAIDEN = {
+    hist = {},
+    offset = 0
+  },
+  SC = {
+    hist = {},
+    offset = 0
+  }
 }
 
 function get_previous_input(repl)
-   if input_history[repl].offset == #input_history[repl].hist then
-      return input_history[repl].hist[1] or "" -- latter covers the edge case of fresh history
-   end
-   -- FIXME: Figure out index first, only then the message; reason based on index and hist length.
-   local prev_input = input_history[repl].hist[#input_history[repl].hist - input_history[repl].offset]
-   if input_history[repl].offset < #input_history[repl].hist then
-      input_history[repl].offset = input_history[repl].offset + 1
-   end
-   return prev_input or ""
+  if input_history[repl].offset == #input_history[repl].hist then
+    return input_history[repl].hist[1] or "" -- latter covers the edge case of fresh history
+  end
+  -- FIXME: Figure out index first, only then the message; reason based on index and hist length.
+  local prev_input = input_history[repl].hist[#input_history[repl].hist - input_history[repl].offset]
+  if input_history[repl].offset < #input_history[repl].hist then
+    input_history[repl].offset = input_history[repl].offset + 1
+  end
+  return prev_input or ""
 end
 
 function get_next_input(repl)
-   if input_history[repl].offset <= 1 then
-      return prompts[repl].text -- back to the unfinished draft
-   end
-   if input_history[repl].offset > 0 then
-      input_history[repl].offset = input_history[repl].offset - 1
-   end
-   local next_input = input_history[repl].hist[#input_history[repl].hist - input_history[repl].offset]
-   return next_input
+  if input_history[repl].offset <= 1 then
+    return prompts[repl].text -- back to the unfinished draft
+  end
+  if input_history[repl].offset > 0 then
+    input_history[repl].offset = input_history[repl].offset - 1
+  end
+  local next_input = input_history[repl].hist[#input_history[repl].hist - input_history[repl].offset]
+  return next_input
 end
 
 -- ------------------------------------------------------------------------
@@ -343,9 +343,9 @@ function repl_ui.kbd_code(repl, code, value)
     local after_cursor = prompt_after_cursor(repl)
     prompts[repl].text = before_cursor .. string.sub(after_cursor, 2)
   elseif code == 'ENTER' and value > 0 then
-     -- FIXME: this clause is currently doing too much
+    -- FIXME: this clause is currently doing too much
     if prompts[repl].text ~= "" then
-       table.insert(input_history[repl].hist, prompts[repl].text)
+      table.insert(input_history[repl].hist, prompts[repl].text)
     end
     input_history[repl].offset = 0
     prompts[repl].submit_fn(prompts[repl].text)
@@ -366,10 +366,16 @@ function repl_ui.kbd_code(repl, code, value)
   elseif code == 'UP' and value > 0 then
     if keyboard.alt() then
       offset_repl_output_up(out_buffs[repl], 1)
+    else
+      prompts[repl].text = get_previous_input(repl)
+      prompts[repl].cursor = string.len(prompts[repl].text)
     end
   elseif code == 'DOWN' and value > 0 then
     if keyboard.alt() then
       offset_repl_output_down(out_buffs[repl], 1)
+    else
+      prompts[repl].text = get_next_input(repl)
+      prompts[repl].cursor = string.len(prompts[repl].text)
     end
   end
 end
