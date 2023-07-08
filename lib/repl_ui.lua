@@ -19,16 +19,20 @@ local lines_leading = 6
 -- ------------------------------------------------------------------------
 -- STATE - PROMPTS
 
-local prompts = {
+prompts = {
   MAIDEN={
     text = "",
     kill = "",
+    hist = {},
+    offset = 0,
     cursor = 0,
     submit_fn = repl_osc_gw.send_maiden,
   },
   SC ={
     text = "",
     kill = "",
+    hist = {},
+    offset = 0,
     cursor = 0,
     submit_fn = repl_osc_gw.send_sc,
   },
@@ -50,34 +54,23 @@ end
 -- ------------------------------------------------------------------------
 -- REPL INPUT HISTORY
 
-local input_history = {
-  MAIDEN = {
-    hist = {},
-    offset = 0
-  },
-  SC = {
-    hist = {},
-    offset = 0
-  }
-}
-
 function get_previous_input(repl)
-  if #input_history[repl].hist == 0 then -- history is empty
+  if #prompts[repl].hist == 0 then -- history is empty
     return prompts[repl].text
   end
-  if input_history[repl].offset < #input_history[repl].hist then
-    input_history[repl].offset = input_history[repl].offset + 1
+  if prompts[repl].offset < #prompts[repl].hist then
+    prompts[repl].offset = prompts[repl].offset + 1
   end
-  local prev_input = input_history[repl].hist[#input_history[repl].hist - input_history[repl].offset + 1]
+  local prev_input = prompts[repl].hist[#prompts[repl].hist - prompts[repl].offset + 1]
   return prev_input
 end
 
 
 function get_next_input(repl)
   -- FIXME: an Obi-Wan error somewhere, sometimes first "next" does not scroll the history
-  if input_history[repl].offset > 0 and input_history[repl].offset <= #input_history[repl].hist then
-    input_history[repl].offset = input_history[repl].offset - 1
-    local next_input = input_history[repl].hist[#input_history[repl].hist - input_history[repl].offset]
+  if prompts[repl].offset > 0 and prompts[repl].offset <= #prompts[repl].hist then
+    prompts[repl].offset = prompts[repl].offset - 1
+    local next_input = prompts[repl].hist[#prompts[repl].hist - prompts[repl].offset]
     return next_input
   else
     -- return prompts[repl].text -- FIXME: return what the user was working on rather than blank.
@@ -346,9 +339,9 @@ function repl_ui.kbd_code(repl, code, value)
   elseif code == 'ENTER' and value > 0 then
     -- FIXME: this clause is currently doing too much
     if prompts[repl].text ~= "" then
-      table.insert(input_history[repl].hist, prompts[repl].text)
+      table.insert(prompts[repl].hist, prompts[repl].text)
     end
-    input_history[repl].offset = 0
+    prompts[repl].offset = 0
     prompts[repl].submit_fn(prompts[repl].text)
     prompts[repl].text = ""
     prompts[repl].cursor = 0
