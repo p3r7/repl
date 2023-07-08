@@ -77,7 +77,7 @@ end
 function TestInputHistoryBackward:testShouldGetOldestInput()
   get_previous_input(repl)
   get_previous_input(repl)
-  luaunit.assertEquals(get_previous_input("MAIDEN"), "oldest command")
+  luaunit.assertEquals(get_previous_input(repl), "oldest command")
 end
 
 function TestInputHistoryBackward:testShouldGetOldestInputForever()
@@ -125,7 +125,6 @@ function TestInputHistoryForward:testForwardShouldReturnToBlankInput()
   have_prompt()
 
   luaunit.assertEquals(get_previous_input(repl), "latest command")
-  -- get_next_input(repl)
   luaunit.assertEquals(get_next_input(repl), "")
 end
 
@@ -141,7 +140,6 @@ function TestInputHistoryForward:testForwardFromLastShouldReturnToDraftInput()
   prompts[repl].text = "incomplete co"
 
   luaunit.assertEquals(get_previous_input(repl), "latest command")
-  -- get_next_input(repl)
   luaunit.assertEquals(get_next_input(repl), "incomplete co")
 end
 

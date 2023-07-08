@@ -62,26 +62,27 @@ local input_history = {
 }
 
 function get_previous_input(repl)
-  if input_history[repl].offset == #input_history[repl].hist then
-    return input_history[repl].hist[1] or "" -- latter covers the edge case of fresh history
+  if #input_history[repl].hist == 0 then -- history is empty
+    return prompts[repl].text
   end
-  -- FIXME: Figure out index first, only then the message; reason based on index and hist length.
-  local prev_input = input_history[repl].hist[#input_history[repl].hist - input_history[repl].offset]
   if input_history[repl].offset < #input_history[repl].hist then
     input_history[repl].offset = input_history[repl].offset + 1
   end
-  return prev_input or ""
+  local prev_input = input_history[repl].hist[#input_history[repl].hist - input_history[repl].offset + 1]
+  return prev_input
 end
 
+
 function get_next_input(repl)
-  if input_history[repl].offset <= 1 then
-    return prompts[repl].text -- back to the unfinished draft
-  end
-  if input_history[repl].offset > 0 then
+  -- FIXME: an Obi-Wan error somewhere, sometimes first "next" does not scroll the history
+  if input_history[repl].offset > 0 and input_history[repl].offset <= #input_history[repl].hist then
     input_history[repl].offset = input_history[repl].offset - 1
+    local next_input = input_history[repl].hist[#input_history[repl].hist - input_history[repl].offset]
+    return next_input
+  else
+    -- return prompts[repl].text -- FIXME: return what the user was working on rather than blank.
+    return ""
   end
-  local next_input = input_history[repl].hist[#input_history[repl].hist - input_history[repl].offset]
-  return next_input
 end
 
 -- ------------------------------------------------------------------------
