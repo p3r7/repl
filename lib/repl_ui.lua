@@ -19,7 +19,7 @@ local lines_leading = 6
 -- ------------------------------------------------------------------------
 -- STATE - PROMPTS
 
-prompts = {
+local prompts = {
   MAIDEN={
     text = "",
     kill = "",
