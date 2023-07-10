@@ -4,6 +4,7 @@ local repl_ui = {}
 -- ------------------------------------------------------------------------
 -- DEPS
 
+local tab = require("tabutil")
 local repl_osc_gw = require 'repl/lib/repl_osc_gw'
 local fifo = require 'repl/lib/fifo'
 
@@ -54,23 +55,25 @@ end
 -- ------------------------------------------------------------------------
 -- REPL INPUT HISTORY
 
-function get_previous_input(repl)
-  if #prompts[repl].hist == 0 then -- history is empty
+local function get_previous_input(repl)
+  if tab.count(prompts[repl].hist) == 0 then -- history is empty
     return prompts[repl].text
   end
-  if prompts[repl].offset < #prompts[repl].hist then
+  if prompts[repl].offset < tab.count(prompts[repl].hist) then
     prompts[repl].offset = prompts[repl].offset + 1
+    local prev_input = prompts[repl].hist[tab.count(prompts[repl].hist) - prompts[repl].offset + 1]
+    return prev_input
+  else
+    return prompts[repl].hist[1]
   end
-  local prev_input = prompts[repl].hist[#prompts[repl].hist - prompts[repl].offset + 1]
-  return prev_input
 end
 
-
-function get_next_input(repl)
-  -- FIXME: an Obi-Wan error somewhere, sometimes first "next" does not scroll the history
-  if prompts[repl].offset > 0 and prompts[repl].offset <= #prompts[repl].hist then
+local function get_next_input(repl)
+  if prompts[repl].offset > 0 and prompts[repl].offset <= tab.count(prompts[repl].hist) then
     prompts[repl].offset = prompts[repl].offset - 1
-    local next_input = prompts[repl].hist[#prompts[repl].hist - prompts[repl].offset]
+  end
+  if prompts[repl].offset > 0 then
+    local next_input = prompts[repl].hist[tab.count(prompts[repl].hist) - prompts[repl].offset + 1]
     return next_input
   else
     -- return prompts[repl].text -- FIXME: return what the user was working on rather than blank.
