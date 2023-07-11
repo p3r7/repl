@@ -18,8 +18,9 @@ using a keyboard, one can type / edit at the prompt.
 additionally:
 
 - `Enter`: submit prompt to current REPL
+- directional arrows `↑`, `↓`: browse input history
 - `Alt` + directional arrows: scroll UP/DOWN/LEFT/RIGHT
-- standard Unix/Emacs bindings (`Ctrl+A`, `Ctrl+E`, `Ctrl+W`, `Ctrl+K`, `Ctrl+Y`, `Ctrl+L`) work
+- standard Unix/Emacs bindings (`Ctrl+P`, `Ctrl-N`, `Ctrl+A`, `Ctrl+E`, `Ctrl+W`, `Ctrl+K`, `Ctrl+Y`, `Ctrl+L`) work
 
 
 ## implementation details

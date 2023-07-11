@@ -4,6 +4,7 @@ local repl_ui = {}
 -- ------------------------------------------------------------------------
 -- DEPS
 
+local tab = require("tabutil")
 local repl_osc_gw = require 'repl/lib/repl_osc_gw'
 local fifo = require 'repl/lib/fifo'
 
@@ -23,12 +24,16 @@ local prompts = {
   MAIDEN={
     text = "",
     kill = "",
+    hist = {},
+    offset = 0,
     cursor = 0,
     submit_fn = repl_osc_gw.send_maiden,
   },
   SC ={
     text = "",
     kill = "",
+    hist = {},
+    offset = 0,
     cursor = 0,
     submit_fn = repl_osc_gw.send_sc,
   },
@@ -47,6 +52,34 @@ local function prompt_insert(repl, str)
   prompts[repl].cursor = prompts[repl].cursor + string.len(str)
 end
 
+-- ------------------------------------------------------------------------
+-- REPL INPUT HISTORY
+
+local function get_previous_input(repl)
+  if tab.count(prompts[repl].hist) == 0 then -- history is empty
+    return prompts[repl].text
+  end
+  if prompts[repl].offset < tab.count(prompts[repl].hist) then
+    prompts[repl].offset = prompts[repl].offset + 1
+    local prev_input = prompts[repl].hist[tab.count(prompts[repl].hist) - prompts[repl].offset + 1]
+    return prev_input
+  else
+    return prompts[repl].hist[1]
+  end
+end
+
+local function get_next_input(repl)
+  if prompts[repl].offset > 0 and prompts[repl].offset <= tab.count(prompts[repl].hist) then
+    prompts[repl].offset = prompts[repl].offset - 1
+  end
+  if prompts[repl].offset > 0 then
+    local next_input = prompts[repl].hist[tab.count(prompts[repl].hist) - prompts[repl].offset + 1]
+    return next_input
+  else
+    -- return prompts[repl].text -- FIXME: return what the user was working on rather than blank.
+    return ""
+  end
+end
 
 -- ------------------------------------------------------------------------
 -- REPL OUTPUTS
@@ -270,6 +303,10 @@ function repl_ui.kbd_char(repl, char)
       prompts[repl].cursor = 0
     elseif char == "e" then
       prompts[repl].cursor = string.len(prompts[repl].text)
+    elseif char == "b" then
+      prompts[repl].cursor = math.max(0, prompts[repl].cursor - 1)
+    elseif char == "f" then
+      prompts[repl].cursor = math.min(string.len(prompts[repl].text), prompts[repl].cursor + 1)
     elseif char == "k" then
       prompts[repl].kill = prompt_after_cursor(repl)
       prompts[repl].text = prompt_before_cursor(repl)
@@ -279,6 +316,12 @@ function repl_ui.kbd_char(repl, char)
       prompts[repl].cursor = 0
     elseif char == "y" then
       prompt_insert(repl, prompts[repl].kill)
+    elseif char == "p" then
+      prompts[repl].text = get_previous_input(repl)
+      prompts[repl].cursor = string.len(prompts[repl].text)
+    elseif char == "n" then
+      prompts[repl].text = get_next_input(repl)
+      prompts[repl].cursor = string.len(prompts[repl].text)
     end
     return
   end
@@ -297,6 +340,11 @@ function repl_ui.kbd_code(repl, code, value)
     local after_cursor = prompt_after_cursor(repl)
     prompts[repl].text = before_cursor .. string.sub(after_cursor, 2)
   elseif code == 'ENTER' and value > 0 then
+    -- FIXME: this clause is currently doing too much
+    if prompts[repl].text ~= "" then
+      table.insert(prompts[repl].hist, prompts[repl].text)
+    end
+    prompts[repl].offset = 0
     prompts[repl].submit_fn(prompts[repl].text)
     prompts[repl].text = ""
     prompts[repl].cursor = 0
@@ -315,10 +363,16 @@ function repl_ui.kbd_code(repl, code, value)
   elseif code == 'UP' and value > 0 then
     if keyboard.alt() then
       offset_repl_output_up(out_buffs[repl], 1)
+    else
+      prompts[repl].text = get_previous_input(repl)
+      prompts[repl].cursor = string.len(prompts[repl].text)
     end
   elseif code == 'DOWN' and value > 0 then
     if keyboard.alt() then
       offset_repl_output_down(out_buffs[repl], 1)
+    else
+      prompts[repl].text = get_next_input(repl)
+      prompts[repl].cursor = string.len(prompts[repl].text)
     end
   end
 end

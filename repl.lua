@@ -14,6 +14,8 @@
 -- keyboard:
 -- - Enter: submit prompt
 -- - Alt + arrows: scroll
+-- - Ctrl+P: previous input
+-- - Ctrl+N: next input
 -- - Ctrl+A: begining of line
 -- - Ctrl+E: end of line
 -- - Ctrl+W: kill before (cut)
