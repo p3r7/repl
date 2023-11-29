@@ -73,7 +73,7 @@ function repl_osc_gw.register_receive(maiden_fn, sc_fn, both_fn)
       if both_fn ~= nil then
         both_fn(d)
       end
-    elseif  old_osc_in ~= nil then
+    elseif script_osc_in ~= nil then
       script_osc_in(path, args, from)
     end
   end
