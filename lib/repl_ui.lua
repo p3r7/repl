@@ -242,6 +242,7 @@ end
 local function draw_repl_prompt(text, cursor)
   local ps = ">> "
   local y = 60
+  local RMARGIN = 112
 
   screen.level(8)
   screen.move(0, y)
@@ -250,9 +251,18 @@ local function draw_repl_prompt(text, cursor)
   local t_x = real_text_extends(ps)
   screen.level(15)
   screen.move(t_x, y)
-  screen.text(text)
+  if real_text_extends(string.sub(text, 1, cursor)) > RMARGIN then
+     screen.text(".."..string.sub(text, cursor-22, cursor))
+  else
+     screen.text(text)
+  end
 
-  local c_x = t_x + real_text_extends(string.sub(text, 1, cursor))
+  local c_x = 0
+  if real_text_extends(string.sub(text, 1, cursor)) > RMARGIN then
+     c_x = t_x + real_text_extends(string.sub(text, cursor-22, cursor))
+  else
+     c_x = t_x + real_text_extends(string.sub(text, 1, cursor))
+  end
   local c_h = 8
   local text_upperline_h = 6 -- this depends on font...
   if cursor < string.len(text) then
