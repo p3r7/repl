@@ -22,6 +22,7 @@ local lines_leading = 6
 
 local prompts = {
   MAIDEN={
+    ps = "m> ",
     text = "",
     kill = "",
     hist = {},
@@ -30,6 +31,7 @@ local prompts = {
     submit_fn = repl_osc_gw.send_maiden,
   },
   SC ={
+    ps = "s> ",
     text = "",
     kill = "",
     hist = {},
@@ -219,6 +221,18 @@ local function real_text_extends(text)
   return screen.text_extents(text:gsub("% ", "T"))
 end
 
+--- Find a substring tail index up to number of pixels.
+-- @param text   the text to search trail for.
+-- @param extend max this many pixels.
+-- @param n      for recursion, use -1 maybe.
+-- @return last string index which fits.
+local function find_extent_tail(text, extent, n)
+   if real_text_extends(string.sub(text, n)) >= extent or n < -extent then
+        return n
+   end
+   return find_extent_tail(text, extent, n-1)
+end
+
 local function draw_repl_logs(repl_buff, y_offset, x_offset)
   if x_offset == nil then
     x_offset = 0
@@ -239,30 +253,31 @@ local function draw_repl_logs(repl_buff, y_offset, x_offset)
   end
 end
 
-local function draw_repl_prompt(text, cursor)
-  local ps = ">> "
+local function draw_repl_prompt(text, cursor, ps)
+  if norns.state.name == "none" then ps = "< no script > " end
   local y = 60
-  local RMARGIN = 112
+  local t_x = real_text_extends(ps)
+  local RMARGIN = 128 - t_x - 10
 
   screen.level(8)
   screen.move(0, y)
   screen.text(ps)
 
-  local t_x = real_text_extends(ps)
   screen.level(15)
   screen.move(t_x, y)
-  if real_text_extends(string.sub(text, 1, cursor)) > RMARGIN then
-     screen.text(".."..string.sub(text, cursor-22, cursor))
-  else
-     screen.text(text)
-  end
 
   local c_x = 0
-  if real_text_extends(string.sub(text, 1, cursor)) > RMARGIN then
-     c_x = t_x + real_text_extends(string.sub(text, cursor-22, cursor))
+  if real_text_extends(string.sub(text, 1, cursor)) < RMARGIN then
+    screen.text(text)
+    c_x = t_x + real_text_extends(string.sub(text, 1, cursor))
   else
-     c_x = t_x + real_text_extends(string.sub(text, 1, cursor))
+    local text_up_to_c = string.sub(text, -cursor)
+    local tail_i       = find_extent_tail(text_up_to_c, RMARGIN, -1)
+    local tail_text = string.sub(text, cursor+tail_i, cursor)
+    screen.text(tail_text)
+    c_x = t_x + real_text_extends(tail_text)
   end
+
   local c_h = 8
   local text_upperline_h = 6 -- this depends on font...
   if cursor < string.len(text) then
@@ -301,7 +316,7 @@ function repl_ui.redraw(repl)
   draw_repl_logs(out_buffs[repl].buff, out_buffs[repl].offset.y, out_buffs[repl].offset.x)
 
   -- prompt
-  draw_repl_prompt(prompts[repl].text, prompts[repl].cursor)
+  draw_repl_prompt(prompts[repl].text, prompts[repl].cursor, prompts[repl].ps)
 end
 
 function repl_ui.kbd_char(repl, char)
